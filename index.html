@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>好櫃櫃 GoodLocker｜智慧置物櫃管理系統</title>
+<meta name="description" content="好櫃櫃 GoodLocker：整合 RFID、指紋辨識與網頁管理的 ESP32 智慧置物櫃。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1ec; --panel:#ffffff; --ink:#18282b; --muted:#566468;
+  --steel:#2d6a85; --steel-d:#1d4a5e; --signal:#e8872b; --ok:#2e9e5b; --line:#cfd8d3;
+  --sans:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --en:"Outfit","Noto Sans TC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121b1d;--panel:#1b282b;--ink:#e8efec;--muted:#9fb0b3;--steel:#6db3d2;--steel-d:#a8d6ea;--line:#2f4044}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;font-size:17px}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:22px;align-items:center;height:56px;overflow-x:auto;white-space:nowrap}
+nav b{font-family:var(--en);font-size:19px;margin-right:auto}
+nav a{text-decoration:none;color:var(--muted);font-size:15px}
+nav a:hover{color:var(--steel)}
+
+/* hero */
+.hero{padding:56px 0 40px}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+h1{font-size:clamp(48px,9vw,92px);line-height:1.05;margin:0;font-weight:900;letter-spacing:.02em}
+.en{font-family:var(--en);font-weight:800;font-size:clamp(22px,3.4vw,34px);color:var(--steel);margin:10px 0 0}
+.sub{font-size:20px;margin:18px 0 0;max-width:30em}
+.photo{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000}
+.photo img{display:block;width:100%;height:auto}
+
+/* live demo */
+.demo{margin-top:30px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.state{display:flex;align-items:center;gap:12px;min-width:150px}
+.lamp{width:18px;height:18px;border-radius:50%;background:#d33;box-shadow:0 0 0 4px rgba(221,51,51,.2);transition:.3s}
+.demo.open .lamp{background:var(--ok);box-shadow:0 0 0 4px rgba(46,158,91,.25)}
+.state b{font-family:var(--en);font-size:22px}
+.demo button{font:inherit;font-size:15px;border:1px solid var(--steel);background:transparent;color:var(--steel);padding:8px 14px;border-radius:8px;cursor:pointer}
+.demo button:hover{background:var(--steel);color:#fff}
+.demo small{flex-basis:100%;color:var(--muted);font-size:14px}
+
+section{padding:56px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(28px,4vw,38px);margin:0 0 8px;font-weight:900}
+.lead{color:var(--muted);margin:0 0 30px;max-width:40em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.feat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+.feat h3{margin:0 0 6px;font-size:19px;color:var(--steel-d)}
+.feat p{margin:0;font-size:15.5px;color:var(--muted)}
+.feat.big{border-color:var(--steel);border-width:2px}
+
+/* flow */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0;counter-reset:s;margin-top:10px}
+.flow li{list-style:none;position:relative;padding:18px 16px 18px 18px;border-left:3px solid var(--steel);background:var(--panel);margin:0 0 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.flow li:last-child{border-right:1px solid var(--line)}
+.flow b{display:block;font-size:17px}
+.flow span{font-size:14.5px;color:var(--muted)}
+.flow{padding:0}
+
+/* split */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start}
+.phone{max-width:300px;margin:0 auto;border-radius:22px;border:6px solid var(--ink);overflow:hidden;background:#fff}
+.phone img{display:block;width:100%;max-height:560px;object-fit:cover;object-position:top}
+ul.ticks{padding:0;margin:14px 0 0}
+ul.ticks li{list-style:none;padding-left:26px;position:relative;margin:8px 0}
+ul.ticks li::before{content:"";position:absolute;left:4px;top:.65em;width:10px;height:10px;border-radius:2px;background:var(--signal)}
+
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:15.5px}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{width:34%;color:var(--steel-d);font-weight:700;background:color-mix(in srgb,var(--steel) 8%,var(--panel))}
+tr:last-child th,tr:last-child td{border-bottom:0}
+.tbl{overflow-x:auto}
+
+footer{padding:40px 0 60px;border-top:1px solid var(--line);color:var(--muted);font-size:15px}
+footer b{color:var(--ink)}
+
+@media (max-width:760px){
+  .hero .wrap,.split{grid-template-columns:1fr}
+  .flow li:last-child{border-right:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <b>GoodLocker</b>
+  <a href="#why">專題動機</a><a href="#features">功能</a><a href="#flow">運作流程</a><a href="#web">網頁管理</a><a href="#hardware">硬體</a><a href="#team">團隊</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div>
+    <h1>好櫃櫃</h1>
+    <p class="en">GoodLocker · Smart Locker Management System</p>
+    <p class="sub">一個櫃子，三種開法：刷卡、按指紋、用手機網頁管理。誰能開門，由你決定。</p>
+    <div class="demo" id="demo">
+      <div class="state"><span class="lamp"></span><b id="st">LOCKED</b></div>
+      <button data-m="RFID 刷卡">刷卡開鎖</button>
+      <button data-m="指紋辨識">指紋開鎖</button>
+      <button data-m="網頁管理">網頁開鎖</button>
+      <small id="note">試試看：點一個按鈕，模擬櫃子的開鎖狀態（3 秒後自動上鎖）。</small>
+    </div>
+  </div>
+  <figure class="photo" style="margin:0"><img src="images/top.png" alt="好櫃櫃控制電路：ESP32、RFID 讀卡機、OLED 與指紋模組"></figure>
+</div></header>
+
+<section id="why"><div class="wrap">
+  <h2>專題動機</h2>
+  <p class="lead">傳統置物櫃靠鑰匙或密碼鎖，鑰匙會遺失、密碼會外流，管理者也難以得知誰在何時使用。好櫃櫃用低成本的 ESP32 整合多種身分驗證，並提供網頁後台，讓置物櫃管理更安全、更方便。</p>
+  <div class="grid">
+    <div class="feat"><h3>鑰匙會弄丟</h3><p>RFID 卡片與指紋取代實體鑰匙，管理者可隨時新增或停用授權。</p></div>
+    <div class="feat"><h3>密碼會外流</h3><p>指紋是每個人獨有的，無法借用或轉傳，降低盜用風險。</p></div>
+    <div class="feat"><h3>管理很麻煩</h3><p>透過手機瀏覽器即可登錄、刪除指紋，並即時看到辨識紀錄。</p></div>
+  </div>
+</div></section>
+
+<section id="features"><div class="wrap">
+  <h2>系統功能</h2>
+  <p class="lead">所有功能由一塊 ESP32 開發板統一控制。</p>
+  <div class="grid">
+    <div class="feat big"><h3>RFID 刷卡開鎖</h3><p>以 MFRC522 讀取卡片 UID，與白名單比對；符合即驅動舵機開鎖，不符則亮紅燈並響起蜂鳴器警示。</p></div>
+    <div class="feat big"><h3>指紋辨識（AS608）</h3><p>可儲存 1～127 枚指紋，辨識成功自動開鎖，並回報指紋 ID 與相似度。</p></div>
+    <div class="feat big"><h3>網頁遠端管理</h3><p>ESP32 內建網頁伺服器，手機連上同一 Wi-Fi 即可使用，需輸入帳號密碼登入。</p></div>
+    <div class="feat"><h3>OLED 即時顯示</h3><p>以 0.96 吋 OLED 顯示 LOCKED / UNLOCKED 與操作提示。</p></div>
+    <div class="feat"><h3>觸摸控制燈光</h3><p>觸摸感應模組搭配繼電器，輕觸一下即可開關櫃內燈光，含防彈跳處理。</p></div>
+    <div class="feat"><h3>聲光回饋</h3><p>綠燈代表通過、紅燈代表拒絕，蜂鳴器提示結果；蜂鳴器以軟體方波驅動，避免與舵機搶用 PWM。</p></div>
+  </div>
+</div></section>
+
+<section id="flow"><div class="wrap">
+  <h2>運作流程</h2>
+  <p class="lead">不論用哪一種方式，都走同樣的驗證流程。</p>
+  <ol class="flow">
+    <li><b>1. 提出身分</b><span>刷卡或按上指紋</span></li>
+    <li><b>2. 比對授權</b><span>卡片白名單／指紋資料庫</span></li>
+    <li><b>3. 驅動鎖具</b><span>通過：舵機轉到開鎖角度</span></li>
+    <li><b>4. 回饋與紀錄</b><span>OLED、燈號、蜂鳴器、網頁同步更新</span></li>
+    <li><b>5. 自動上鎖</b><span>延遲後舵機回到鎖上位置</span></li>
+  </ol>
+</div></section>
+
+<section id="web"><div class="wrap">
+  <h2>網頁管理介面</h2>
+  <div class="split">
+    <div class="phone"><img src="images/web.jpg" alt="好櫃櫃手機網頁管理介面截圖" loading="lazy"></div>
+    <div>
+      <p class="lead" style="margin-bottom:0">管理者用手機就能操作，不需要另外安裝 App。畫面每秒自動更新。</p>
+      <ul class="ticks">
+        <li>即時顯示 AS608 連線、門鎖狀態、燈光狀態</li>
+        <li>顯示已登錄的指紋數量</li>
+        <li>查看最近一次辨識的來源、指紋 ID 與相似度</li>
+        <li>新增指紋：依畫面提示放上手指、移開、再放同一根手指</li>
+        <li>刪除指定 ID，或一鍵清除全部指紋</li>
+        <li>操作需通過帳號密碼登入，避免外人改動授權名單</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<section id="hardware"><div class="wrap">
+  <h2>硬體與作品外觀</h2>
+  <p class="lead">電路固定在透明置物箱頂部，舵機裝在箱體側面的門栓位置。</p>
+  <div class="split" style="margin-bottom:30px">
+    <figure class="photo" style="margin:0"><img src="images/box.png" alt="好櫃櫃整體外觀：透明置物箱與頂部控制電路" loading="lazy"></figure>
+    <div class="tbl"><table>
+      <tr><th>主控板</th><td>ESP32（Wi-Fi，STA 模式）</td></tr>
+      <tr><th>刷卡</th><td>MFRC522 RFID 模組</td></tr>
+      <tr><th>指紋</th><td>AS608 光學指紋模組</td></tr>
+      <tr><th>鎖具</th><td>SG90 舵機（90° 鎖上／0° 開鎖）</td></tr>
+      <tr><th>顯示</th><td>SSD1306 OLED 128×64（I²C）</td></tr>
+      <tr><th>燈光</th><td>觸摸感應模組 + 繼電器</td></tr>
+      <tr><th>提示</th><td>紅／綠 LED、蜂鳴器</td></tr>
+    </table></div>
+  </div>
+  <div class="tbl"><table>
+    <tr><th>開發環境</th><td>Arduino IDE（C++）</td></tr>
+    <tr><th>使用函式庫</th><td>MFRC522、Adafruit_SSD1306、Adafruit_Fingerprint、ESP32Servo、WebServer</td></tr>
+    <tr><th>網頁技術</th><td>HTML / CSS / JavaScript（Fetch API 輪詢狀態）、HTTP 基本驗證</td></tr>
+  </table></div>
+</div></section>
+
+<section id="team"><div class="wrap">
+  <h2>未來展望</h2>
+  <ul class="ticks">
+    <li>加入開門紀錄與時間戳記，方便稽核</li>
+    <li>連接雲端，讓管理者不在同一個 Wi-Fi 也能遠端管理</li>
+    <li>支援多個櫃位與使用者分級權限</li>
+    <li>加入門片偵測，提醒「櫃門未關好」</li>
+  </ul>
+</div></section>
+
+<footer><div class="wrap">
+  <b>好櫃櫃 GoodLocker</b>｜智慧置物櫃管理系統<br>
+  專題成員：（請填入姓名）　指導老師：（請填入）　學校／科系：（請填入）　2026
+</div></footer>
+
+<script>
+(function(){
+  var d=document.getElementById('demo'),st=document.getElementById('st'),note=document.getElementById('note'),t;
+  var base=note.textContent;
+  d.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){
+      clearTimeout(t);
+      d.classList.add('open');st.textContent='UNLOCKED';
+      note.textContent='已透過「'+b.dataset.m+'」開鎖，綠燈亮起。';
+      t=setTimeout(function(){
+        d.classList.remove('open');st.textContent='LOCKED';note.textContent=base;
+      },3000);
+    });
+  });
+})();
+</script>
+</body>
+</html>
